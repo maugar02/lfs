@@ -1,3 +1,4 @@
+#include <NewPing.h>
 
 /* SENSOR ULTRASONICO */
 #define PIN_TRIG  12
@@ -47,6 +48,17 @@ int P = 0;
 int D = 0;
 int error = 0;
 int last_error = 0;
+
+unsigned int pingSpeed = 50;
+unsigned long pingTimer;
+struct {
+  long distance;
+  bool detected;
+}OBJECT;
+
+NewPing sonar(PIN_TRIG, PIN_ECHO, 30);
+
+OBJECT = {0, false};
 
 /* FUNCIONES */
 void MoveForward() {
@@ -139,7 +151,8 @@ void PIDcontrol()
 void setup()
 {
   delay(100);
-
+  pingTimer = millis();
+   
   // Configuramos los pines del puente H
   pinMode(PIN_IN1, OUTPUT);
   pinMode(PIN_IN2, OUTPUT);
@@ -167,8 +180,36 @@ void setup()
   analogWrite(PIN_ENB, BASE_VEL2);
 }
 
+void EsquivaObjectos()
+{
+  MoveStop();
+  while(true)
+  {
+    delay(500);
+  }
+}
+
+void echoCheck() {
+  if (sonar.check_timer()) {
+    OBJECT.detected = true;
+    OBJECT.distance = sonar.ping_result / US_ROUNDTRIP_CM;
+  }
+}
+
 void loop()
 {
+  OBJECT.distance = 0;
+  OBJECT.detected = false;
+  
+  if (millis() >= pingTimer) {
+    pingTimer += pingSpeed;
+    sonar.ping_timer(echoCheck);
+  }
+  if(OBJECT.detected && OBJECT.distance <= 10)
+  {
+    EsquivaObjectos();
+  }
+  
   PIDcontrol();
   delay(10);
 }
